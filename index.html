@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -55,14 +53,24 @@
             top: 5px;
             background: #f1f5f9;
             border: 1px solid #e2e8f0;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
+            padding: 6px;
+            border-radius: 8px;
             cursor: pointer;
             color: #475569;
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .collapse-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .collapse-btn svg {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
         }
 
         #inputContainer {
@@ -131,7 +139,6 @@
             touch-action: auto;
         }
 
-        /* Slider directly under chart */
         .slider-section {
             background: #f8fafc;
             padding: 12px;
@@ -211,7 +218,12 @@
     <header>
         <h1>Bull Put Spread 盈虧模擬</h1>
         <p>標的：DRAM | 賣高買低收權利金</p>
-        <button class="collapse-btn" onclick="toggleInputs()" id="toggleBtn">收起參數 ⬆️</button>
+        <button class="collapse-btn" onclick="toggleInputs()" id="toggleBtn" title="Toggle Inputs">
+            <!-- Chevron Up Icon (Default) -->
+            <svg id="toggleIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+            </svg>
+        </button>
     </header>
 
     <!-- Input Section -->
@@ -254,7 +266,7 @@
         <canvas id="pnlChart"></canvas>
     </div>
 
-    <!-- Simulation Control (Under Chart) -->
+    <!-- Simulation Control -->
     <div class="slider-section">
         <label style="font-size: 0.8rem; color: #475569; font-weight: 600;">拖動拉桿模擬結算價格：</label>
         <div class="slider-container">
@@ -265,7 +277,7 @@
         </div>
     </div>
 
-    <!-- Stats & Scenario Table (Bottom) -->
+    <!-- Stats & Scenario Table -->
     <div class="stats-grid">
         <div class="stat-card"><small>最大利潤</small><div id="resProfit" style="color:var(--success)">$0</div></div>
         <div class="stat-card"><small>最大風險</small><div id="resLoss" style="color:var(--danger)">$0</div></div>
@@ -293,9 +305,11 @@
 
     function toggleInputs() {
         const container = document.getElementById('inputContainer');
-        const btn = document.getElementById('toggleBtn');
+        const icon = document.getElementById('toggleIcon');
         const isCollapsed = container.classList.toggle('collapsed');
-        btn.innerHTML = isCollapsed ? '修改參數 ⬇️' : '收起參數 ⬆️';
+        
+        // Rotate icon 180deg when collapsed to point down
+        icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
     }
 
     function autoCollapse() {
