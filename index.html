@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Options Strategy: Bull Put Spread</title>
+    <title>Bull Put Spread Analyzer (Live)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -11,47 +11,60 @@
             --success: #16a34a;
             --danger: #dc2626;
             --warning: #ea580c;
-            --bg: #f8fafc;
+            --bg: #f1f5f9;
             --card: #ffffff;
             --text: #1e293b;
         }
 
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+        html, body {
+            height: 100%;
             margin: 0;
-            padding: 10px;
+            padding: 0;
+            background-color: var(--bg);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+        }
+
+        body {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
         }
 
         .app-container {
             width: 100%;
-            max-width: 1000px;
+            max-width: 800px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
             background: var(--card);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             box-sizing: border-box;
+            padding: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
         }
 
         header {
-            margin-bottom: 15px;
+            flex-shrink: 0;
+            margin-bottom: 10px;
             border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
             text-align: center;
             position: relative;
         }
 
-        h1 { margin: 0; font-size: 1.2rem; color: var(--primary); }
-        p { color: #64748b; margin: 4px 0 0 0; font-size: 0.8rem; }
+        h1 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+        header p { color: #64748b; margin: 2px 0 0 0; font-size: 0.75rem; }
 
-        .collapse-btn {
+        .header-actions {
             position: absolute;
             right: 0;
-            top: 5px;
-            background: #f1f5f9;
+            top: 2px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            background: #f8fafc;
             border: 1px solid #e2e8f0;
             padding: 6px;
             border-radius: 8px;
@@ -60,24 +73,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
         
-        .collapse-btn:hover {
-            background: #e2e8f0;
-        }
-
-        .collapse-btn svg {
-            width: 20px;
-            height: 20px;
-            transition: transform 0.3s ease;
-        }
+        .icon-btn:hover { background: #eff6ff; border-color: var(--primary); color: var(--primary); }
+        .icon-btn svg { width: 18px; height: 18px; }
 
         #inputContainer {
-            transition: all 0.3s ease-out;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
             overflow: hidden;
             max-height: 1000px;
             opacity: 1;
+            margin-bottom: 10px;
         }
 
         #inputContainer.collapsed {
@@ -88,23 +96,32 @@
 
         .input-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-            background: #f1f5f9;
-            padding: 12px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            background: #f8fafc;
+            padding: 10px;
             border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .api-section {
+            grid-column: span 2;
+            padding: 10px;
+            background: #eff6ff;
+            border-radius: 8px;
+            border: 1px dashed var(--primary);
+            margin-bottom: 8px;
         }
 
         .input-item { display: flex; flex-direction: column; }
         .input-item.full-width { grid-column: span 2; }
 
-        label { font-size: 0.7rem; font-weight: 600; margin-bottom: 2px; color: #475569; }
+        label { font-size: 0.65rem; font-weight: 600; margin-bottom: 2px; color: #64748b; }
         input {
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 14px;
             outline: none;
             width: 100%;
             box-sizing: border-box;
@@ -112,211 +129,295 @@
 
         .btn-calc {
             grid-column: span 2;
-            padding: 12px;
+            padding: 10px;
             background: var(--primary);
             color: white;
             border: none;
             border-radius: 8px;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             cursor: pointer;
-            margin-top: 5px;
+            margin-top: 4px;
         }
 
-        .status-bar {
-            padding: 12px;
-            background: #eff6ff;
-            border-radius: 10px;
-            border: 1px solid #dbeafe;
+        .btn-live {
+            background: #1e293b;
+            color: white;
+            font-size: 0.7rem;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .chart-section {
+            flex-shrink: 0;
+            height: 200px;
             margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .chart-container { 
-            position: relative;
-            height: 250px; 
-            margin-top: 15px;
-            touch-action: auto;
         }
 
         .slider-section {
+            flex-shrink: 0;
             background: #f8fafc;
-            padding: 12px;
+            padding: 8px 12px;
             border-radius: 10px;
-            margin: 10px 0 20px 0;
+            margin-bottom: 12px;
             border: 1px solid #e2e8f0;
-            touch-action: none;
         }
 
-        .slider-container {
-            width: 100%;
-            margin: 8px 0;
-        }
-
+        .slider-container { width: 100%; margin: 4px 0; }
         input[type="range"] {
             width: 100%;
-            height: 12px;
-            border-radius: 5px;
-            background: #cbd5e1;
-            outline: none;
-            cursor: pointer;
+            height: 8px;
             accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .status-display { font-size: 0.8rem; text-align: center; padding: 4px; }
+
+        .info-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 15px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
         }
 
         .stat-card {
-            padding: 10px;
+            padding: 8px;
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             text-align: center;
         }
-        .stat-card small { color: #64748b; font-size: 0.65rem; text-transform: uppercase; display: block; }
-        .stat-card div { font-size: 1rem; font-weight: 700; }
+        .stat-card small { color: #64748b; font-size: 0.6rem; text-transform: uppercase; display: block; }
+        .stat-card div { font-size: 0.85rem; font-weight: 700; }
 
         .table-container {
-            margin-top: 15px;
-            overflow-x: auto;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
+            background: white;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.75rem;
-            text-align: left;
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { background: #f8fafc; padding: 8px; color: #64748b; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }
+        
+        .active-row { background: #f0fdf4; border-left: 4px solid var(--success); }
+        .row-hidden { display: none; }
+
+        .table-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
         }
-        th { background: #f8fafc; padding: 10px; color: #64748b; border-bottom: 1px solid #e2e8f0; }
-        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
-        tr.active-scenario { background: #f0fdf4; border-left: 4px solid var(--success); }
-        .badge {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 0.65rem;
-        }
+        .table-header-flex span { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+
+        .badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.6rem; }
         .badge-profit { background: #dcfce7; color: #166534; }
         .badge-loss { background: #fee2e2; color: #991b1b; }
+
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: none; justify-content: center; align-items: center;
+            z-index: 1000; font-weight: bold; color: var(--primary);
+        }
 
         @media (min-width: 640px) {
             .input-grid { grid-template-columns: repeat(4, 1fr); }
             .btn-calc { grid-column: span 4; }
             .stats-grid { grid-template-columns: repeat(4, 1fr); }
-            .chart-container { height: 350px; }
+            .chart-section { height: 260px; }
         }
     </style>
 </head>
 <body>
 
+<div id="loadingOverlay">正在獲取市場數據...</div>
+
 <div class="app-container">
     <header>
-        <h1>Bull Put Spread 盈虧模擬</h1>
-        <p>標的：DRAM | 賣高買低收權利金</p>
-        <button class="collapse-btn" onclick="toggleInputs()" id="toggleBtn" title="Toggle Inputs">
-            <!-- Chevron Up Icon (Default) -->
-            <svg id="toggleIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-            </svg>
-        </button>
+        <h1>Bull Put Spread Live Analyzer</h1>
+        <p>標的：<span id="displaySymbol">DRAM</span> | 現價: <span id="currentStockPrice">--</span></p>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="toggleInputs()" id="toggleBtn" title="參數設置">
+                <svg id="toggleIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+                </svg>
+            </button>
+        </div>
     </header>
 
-    <!-- Input Section -->
     <div id="inputContainer">
         <div class="input-grid">
+            <div class="api-section">
+                <label>Alpha Vantage API Key (取得動態價格)</label>
+                <div style="display: flex; gap: 4px;">
+                    <input type="password" id="apiKey" placeholder="在此輸入您的 API Key" style="flex:1">
+                    <button class="btn-live" onclick="fetchLiveData()" style="margin-top:0">
+                        ⚡ 獲取市價
+                    </button>
+                </div>
+                <small style="color: #64748b; display: block; margin-top: 4px;">獲取即時股票現價及期權權利金估計。</small>
+            </div>
+            
             <div class="input-item">
                 <label>股票代碼</label>
-                <input type="text" id="symbol" value="DRAM">
+                <input type="text" id="symbol" value="AAPL">
             </div>
             <div class="input-item">
-                <label>測試市價</label>
-                <input type="number" id="manualPrice" step="0.01" value="38.8">
+                <label>手動市價</label>
+                <input type="number" id="manualPrice" step="0.01" value="230.50">
             </div>
             <div class="input-item">
                 <label>賣出 Put (高)</label>
-                <input type="number" id="highStrike" value="35">
+                <input type="number" id="highStrike" value="225">
             </div>
             <div class="input-item">
                 <label>買入 Put (低)</label>
-                <input type="number" id="lowStrike" value="30">
+                <input type="number" id="lowStrike" value="220">
             </div>
             <div class="input-item">
-                <label>賣出收入 $</label>
-                <input type="number" id="shortPremium" step="0.001" value="2.775">
+                <label>賣出權利金</label>
+                <input type="number" id="shortPremium" step="0.01" value="4.50">
             </div>
             <div class="input-item">
-                <label>買入支出 $</label>
-                <input type="number" id="longPremium" step="0.001" value="1.15">
+                <label>買入權利金</label>
+                <input type="number" id="longPremium" step="0.01" value="2.20">
             </div>
             <div class="input-item full-width">
                 <label>合約乘數</label>
                 <input type="number" id="multiplier" value="100">
             </div>
-            <button class="btn-calc" onclick="updateDashboard(); autoCollapse();">更新數據並收起</button>
+            <button class="btn-calc" onclick="updateDashboard(); autoCollapse();">計算模擬損益</button>
         </div>
     </div>
 
-    <!-- Chart -->
-    <div class="chart-container">
-        <canvas id="pnlChart"></canvas>
-    </div>
-
-    <!-- Simulation Control -->
-    <div class="slider-section">
-        <label style="font-size: 0.8rem; color: #475569; font-weight: 600;">拖動拉桿模擬結算價格：</label>
-        <div class="slider-container">
-            <input type="range" id="priceSlider" min="20" max="50" step="0.1" value="38.8" oninput="handleSliderChange(this.value)">
+    <div class="main-content">
+        <div class="chart-section">
+            <canvas id="pnlChart"></canvas>
         </div>
-        <div id="priceInfo" class="status-bar" style="margin-bottom:0;">
-            <span>價格: <strong>$38.80</strong> | 預估損益: <strong style="color:var(--success)">$162.50</strong></span>
+
+        <div class="slider-section">
+            <div class="slider-container">
+                <input type="range" id="priceSlider" step="0.1" oninput="handleSliderChange(this.value)">
+            </div>
+            <div id="priceInfo" class="status-display"></div>
         </div>
-    </div>
 
-    <!-- Stats & Scenario Table -->
-    <div class="stats-grid">
-        <div class="stat-card"><small>最大利潤</small><div id="resProfit" style="color:var(--success)">$0</div></div>
-        <div class="stat-card"><small>最大風險</small><div id="resLoss" style="color:var(--danger)">$0</div></div>
-        <div class="stat-card"><small>損益平衡點</small><div id="resBreakeven" style="color:var(--primary)">$0</div></div>
-        <div class="stat-card"><small>資金報酬率</small><div id="resROI" style="color:var(--primary)">0%</div></div>
-    </div>
+        <div class="info-section">
+            <div class="stats-grid">
+                <div class="stat-card"><small>最大利潤</small><div id="resProfit" style="color:var(--success)">$0</div></div>
+                <div class="stat-card"><small>最大風險</small><div id="resLoss" style="color:var(--danger)">$0</div></div>
+                <div class="stat-card"><small>平衡點</small><div id="resBreakeven" style="color:var(--primary)">$0</div></div>
+                <div class="stat-card"><small>資金報酬率</small><div id="resROI" style="color:var(--primary)">0%</div></div>
+            </div>
 
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>結算區間</th>
-                    <th>情境描述</th>
-                    <th>狀態</th>
-                </tr>
-            </thead>
-            <tbody id="outcomeMatrix"></tbody>
-        </table>
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <span>當前情境分析</span>
+                    <button class="icon-btn" style="padding: 2px 4px; border-radius: 4px;" onclick="toggleFullMatrix()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px; height:14px;">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">價格區間</th>
+                            <th>情境說明</th>
+                            <th style="width: 20%">損益</th>
+                        </tr>
+                    </thead>
+                    <tbody id="outcomeMatrix"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     let chartInstance = null;
     let currentParams = {};
+    let showAllScenarios = false;
+
+    async function fetchLiveData() {
+        const apiKey = document.getElementById('apiKey').value;
+        const symbol = document.getElementById('symbol').value;
+        if (!apiKey) {
+            alertMsg("請先輸入 API Key");
+            return;
+        }
+
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.style.display = 'flex';
+
+        try {
+            // 1. Fetch Stock Price
+            const stockUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`;
+            const stockRes = await fetch(stockUrl);
+            const stockData = await stockRes.json();
+            
+            if (stockData["Global Quote"] && stockData["Global Quote"]["05. price"]) {
+                const price = parseFloat(stockData["Global Quote"]["05. price"]);
+                document.getElementById('manualPrice').value = price.toFixed(2);
+                document.getElementById('currentStockPrice').innerText = `$${price.toFixed(2)}`;
+            }
+
+            alertMsg("股票價格已更新！請確認執行價。");
+            updateDashboard();
+        } catch (e) {
+            alertMsg("獲取數據失敗，請檢查 Key 或網路。");
+        } finally {
+            overlay.style.display = 'none';
+        }
+    }
+
+    function alertMsg(msg) {
+        const div = document.createElement('div');
+        div.style = "position:fixed; top:20px; background:var(--primary); color:white; padding:10px 20px; border-radius:8px; z-index:2000; box-shadow:0 4px 10px rgba(0,0,0,0.2)";
+        div.innerText = msg;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+    }
 
     function toggleInputs() {
         const container = document.getElementById('inputContainer');
         const icon = document.getElementById('toggleIcon');
         const isCollapsed = container.classList.toggle('collapsed');
-        
-        // Rotate icon 180deg when collapsed to point down
         icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    function toggleFullMatrix() {
+        showAllScenarios = !showAllScenarios;
+        handleSliderChange(document.getElementById('priceSlider').value);
     }
 
     function autoCollapse() {
         const container = document.getElementById('inputContainer');
-        if (!container.classList.contains('collapsed')) {
-            toggleInputs();
-        }
+        if (!container.classList.contains('collapsed')) toggleInputs();
     }
 
     function calculatePnL(price, highS, lowS, netCredit, mult) {
@@ -327,19 +428,8 @@
         return pnlPerShare * mult;
     }
 
-    function handleSliderChange(val) {
-        const pnl = calculatePnL(parseFloat(val), currentParams.highS, currentParams.lowS, currentParams.netCredit, currentParams.mult);
-        updateStatusDisplay(val, pnl);
-        updateChartCrosshair(parseFloat(val));
-        updateMatrixHighlight(parseFloat(val));
-    }
-
-    function updateStatusDisplay(price, pnl) {
-        const color = pnl >= 0 ? 'var(--success)' : 'var(--danger)';
-        document.getElementById('priceInfo').innerHTML = `價格: <strong>$${parseFloat(price).toFixed(2)}</strong> | 預估損益: <strong style="color:${color}">$${pnl.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong>`;
-    }
-
     function updateDashboard() {
+        const symbol = document.getElementById('symbol').value;
         const highS = parseFloat(document.getElementById('highStrike').value);
         const lowS = parseFloat(document.getElementById('lowStrike').value);
         const shortP = parseFloat(document.getElementById('shortPremium').value);
@@ -347,6 +437,7 @@
         const mult = parseFloat(document.getElementById('multiplier').value);
         const initialPrice = parseFloat(document.getElementById('manualPrice').value);
 
+        document.getElementById('displaySymbol').innerText = symbol;
         const netCredit = shortP - longP;
         currentParams = { highS, lowS, netCredit, mult };
 
@@ -356,12 +447,12 @@
         
         document.getElementById('resProfit').innerText = `$${maxProfit.toLocaleString()}`;
         document.getElementById('resLoss').innerText = `-$${maxLoss.toLocaleString()}`;
-        document.getElementById('resBreakeven').innerText = `$${breakeven.toFixed(3)}`;
+        document.getElementById('resBreakeven').innerText = `$${breakeven.toFixed(2)}`;
         document.getElementById('resROI').innerText = `${(maxProfit/maxLoss*100).toFixed(1)}%`;
 
         const slider = document.getElementById('priceSlider');
-        slider.min = lowS - 10;
-        slider.max = highS + 10;
+        slider.min = Math.floor(lowS - (highS - lowS));
+        slider.max = Math.ceil(highS + (highS - lowS));
         slider.value = initialPrice;
 
         renderStaticTable(highS, lowS, netCredit, mult, breakeven);
@@ -371,34 +462,58 @@
 
     function renderStaticTable(highS, lowS, netCredit, mult, breakeven) {
         const matrix = [
-            { id: 'profit', range: `> $${highS}`, desc: "完全獲利區" },
-            { id: 'partialProfit', range: `$${breakeven.toFixed(2)} - $${highS}`, desc: "獲利區" },
-            { id: 'partialLoss', range: `$${lowS} - $${breakeven.toFixed(2)}`, desc: "虧損區" },
-            { id: 'maxLoss', range: `< $${lowS}`, desc: "最大風險區" }
+            { id: 'profit', range: `≥ $${highS}`, desc: "價外結算，保留全部權利金" },
+            { id: 'partialProfit', range: `$${breakeven.toFixed(2)} ~ $${highS}`, desc: "微幅進入價內，仍有盈餘" },
+            { id: 'partialLoss', range: `$${lowS} ~ $${breakeven.toFixed(2)}`, desc: "虧損區域，未觸及低位保護" },
+            { id: 'maxLoss', range: `≤ $${lowS}`, desc: "跌破保護，最大風險鎖定" }
         ];
 
         let html = "";
         matrix.forEach(m => {
             const isProfit = m.id.toLowerCase().includes('profit');
-            html += `<tr id="row-${m.id}">
+            html += `<tr id="row-${m.id}" class="scenario-row">
                 <td><strong>${m.range}</strong></td>
                 <td>${m.desc}</td>
-                <td><span class="badge ${isProfit ? 'badge-profit' : 'badge-loss'}">${isProfit ? 'PROFIT' : 'LOSS'}</span></td>
+                <td><span class="badge ${isProfit ? 'badge-profit' : 'badge-loss'}">${isProfit ? '盈利' : '虧損'}</span></td>
             </tr>`;
         });
         document.getElementById('outcomeMatrix').innerHTML = html;
     }
 
-    function updateMatrixHighlight(price) {
+    function handleSliderChange(val) {
+        const pnl = calculatePnL(parseFloat(val), currentParams.highS, currentParams.lowS, currentParams.netCredit, currentParams.mult);
+        
+        const color = pnl >= 0 ? 'var(--success)' : 'var(--danger)';
+        const prefix = pnl >= 0 ? '+' : '';
+        document.getElementById('priceInfo').innerHTML = `模擬價格: <strong>$${parseFloat(val).toFixed(2)}</strong> | 損益: <strong style="color:${color}">${prefix}$${pnl.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong>`;
+        
+        if (chartInstance) {
+            chartInstance.activePrice = parseFloat(val);
+            chartInstance.draw();
+        }
+
         const { highS, lowS, netCredit } = currentParams;
         const breakeven = highS - netCredit;
-        
-        document.querySelectorAll('#outcomeMatrix tr').forEach(r => r.classList.remove('active-scenario'));
-        
-        if (price >= highS) document.getElementById('row-profit').classList.add('active-scenario');
-        else if (price >= breakeven) document.getElementById('row-partialProfit').classList.add('active-scenario');
-        else if (price >= lowS) document.getElementById('row-partialLoss').classList.add('active-scenario');
-        else document.getElementById('row-maxLoss').classList.add('active-scenario');
+        let activeId = "";
+        if (val >= highS) activeId = 'row-profit';
+        else if (val >= breakeven) activeId = 'row-partialProfit';
+        else if (val >= lowS) activeId = 'row-partialLoss';
+        else activeId = 'row-maxLoss';
+
+        document.querySelectorAll('.scenario-row').forEach(r => {
+            r.classList.remove('active-row');
+            if (showAllScenarios) {
+                r.classList.remove('row-hidden');
+                if (r.id === activeId) r.classList.add('active-row');
+            } else {
+                if (r.id === activeId) {
+                    r.classList.remove('row-hidden');
+                    r.classList.add('active-row');
+                } else {
+                    r.classList.add('row-hidden');
+                }
+            }
+        });
     }
 
     function initChart(highS, lowS, netCredit, mult) {
@@ -407,10 +522,12 @@
 
         const labels = [];
         const pnlData = [];
-        const minX = lowS - 10;
-        const maxX = highS + 10;
-        for (let i = 0; i <= 100; i++) {
-            const p = minX + (i * (maxX - minX) / 100);
+        const range = highS - lowS;
+        const minX = lowS - range;
+        const maxX = highS + range;
+        
+        for (let i = 0; i <= 60; i++) {
+            const p = minX + (i * (maxX - minX) / 60);
             labels.push(p);
             pnlData.push(calculatePnL(p, highS, lowS, netCredit, mult));
         }
@@ -421,7 +538,7 @@
                 labels: labels,
                 datasets: [{
                     data: pnlData,
-                    fill: { target: 'origin', above: 'rgba(22, 163, 74, 0.1)', below: 'rgba(220, 38, 38, 0.1)' },
+                    fill: { target: 'origin', above: 'rgba(22, 163, 74, 0.05)', below: 'rgba(220, 38, 38, 0.05)' },
                     borderColor: '#2563eb',
                     borderWidth: 2,
                     pointRadius: 0,
@@ -432,47 +549,30 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: { enabled: false }
-                },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
                 scales: {
                     x: { type: 'linear', grid: { display: false } },
                     y: { grid: { color: '#f1f5f9' } }
                 }
             },
             plugins: [{
-                id: 'verticalLine',
+                id: 'cross',
                 afterDraw: (chart) => {
                     if (chart.activePrice) {
                         const { ctx, chartArea, scales } = chart;
                         const x = scales.x.getPixelForValue(chart.activePrice);
                         ctx.save();
                         ctx.beginPath();
-                        ctx.lineWidth = 2;
                         ctx.setLineDash([5, 5]);
-                        ctx.strokeStyle = 'rgba(37, 99, 235, 0.5)';
+                        ctx.strokeStyle = '#2563eb';
                         ctx.moveTo(x, chartArea.top);
                         ctx.lineTo(x, chartArea.bottom);
                         ctx.stroke();
-                        
-                        const y = scales.y.getPixelForValue(calculatePnL(chart.activePrice, currentParams.highS, currentParams.lowS, currentParams.netCredit, currentParams.mult));
-                        ctx.beginPath();
-                        ctx.arc(x, y, 5, 0, Math.PI * 2);
-                        ctx.fillStyle = '#2563eb';
-                        ctx.fill();
                         ctx.restore();
                     }
                 }
             }]
         });
-    }
-
-    function updateChartCrosshair(price) {
-        if (chartInstance) {
-            chartInstance.activePrice = price;
-            chartInstance.draw();
-        }
     }
 
     window.onload = updateDashboard;
