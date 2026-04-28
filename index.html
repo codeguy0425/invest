@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Options Strategy: Bull Put Spread</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ea580c;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--card);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box;
+        }
+
+        header {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.2rem; color: var(--primary); }
+        p { color: #64748b; margin: 4px 0 0 0; font-size: 0.8rem; }
+
+        .collapse-btn {
+            position: absolute;
+            right: 0;
+            top: 5px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        #inputContainer {
+            transition: all 0.3s ease-out;
+            overflow: hidden;
+            max-height: 1000px;
+            opacity: 1;
+        }
+
+        #inputContainer.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-bottom: 0;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        .input-item { display: flex; flex-direction: column; }
+        .input-item.full-width { grid-column: span 2; }
+
+        label { font-size: 0.7rem; font-weight: 600; margin-bottom: 2px; color: #475569; }
+        input {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .btn-calc {
+            grid-column: span 2;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .status-bar {
+            padding: 12px;
+            background: #eff6ff;
+            border-radius: 10px;
+            border: 1px solid #dbeafe;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .chart-container { 
+            position: relative;
+            height: 250px; 
+            margin-top: 15px;
+            touch-action: auto;
+        }
+
+        /* Slider directly under chart */
+        .slider-section {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 10px 0 20px 0;
+            border: 1px solid #e2e8f0;
+            touch-action: none;
+        }
+
+        .slider-container {
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 12px;
+            border-radius: 5px;
+            background: #cbd5e1;
+            outline: none;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            padding: 10px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card small { color: #64748b; font-size: 0.65rem; text-transform: uppercase; display: block; }
+        .stat-card div { font-size: 1rem; font-weight: 700; }
+
+        .table-container {
+            margin-top: 15px;
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            text-align: left;
+        }
+        th { background: #f8fafc; padding: 10px; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        tr.active-scenario { background: #f0fdf4; border-left: 4px solid var(--success); }
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.65rem;
+        }
+        .badge-profit { background: #dcfce7; color: #166534; }
+        .badge-loss { background: #fee2e2; color: #991b1b; }
+
+        @media (min-width: 640px) {
+            .input-grid { grid-template-columns: repeat(4, 1fr); }
+            .btn-calc { grid-column: span 4; }
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+            .chart-container { height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>Bull Put Spread 盈虧模擬</h1>
+        <p>標的：DRAM | 賣高買低收權利金</p>
+        <button class="collapse-btn" onclick="toggleInputs()" id="toggleBtn">收起參數 ⬆️</button>
+    </header>
+
+    <!-- Input Section -->
+    <div id="inputContainer">
+        <div class="input-grid">
+            <div class="input-item">
+                <label>股票代碼</label>
+                <input type="text" id="symbol" value="DRAM">
+            </div>
+            <div class="input-item">
+                <label>測試市價</label>
+                <input type="number" id="manualPrice" step="0.01" value="38.8">
+            </div>
+            <div class="input-item">
+                <label>賣出 Put (高)</label>
+                <input type="number" id="highStrike" value="35">
+            </div>
+            <div class="input-item">
+                <label>買入 Put (低)</label>
+                <input type="number" id="lowStrike" value="30">
+            </div>
+            <div class="input-item">
+                <label>賣出收入 $</label>
+                <input type="number" id="shortPremium" step="0.001" value="2.775">
+            </div>
+            <div class="input-item">
+                <label>買入支出 $</label>
+                <input type="number" id="longPremium" step="0.001" value="1.15">
+            </div>
+            <div class="input-item full-width">
+                <label>合約乘數</label>
+                <input type="number" id="multiplier" value="100">
+            </div>
+            <button class="btn-calc" onclick="updateDashboard(); autoCollapse();">更新數據並收起</button>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-container">
+        <canvas id="pnlChart"></canvas>
+    </div>
+
+    <!-- Simulation Control (Under Chart) -->
+    <div class="slider-section">
+        <label style="font-size: 0.8rem; color: #475569; font-weight: 600;">拖動拉桿模擬結算價格：</label>
+        <div class="slider-container">
+            <input type="range" id="priceSlider" min="20" max="50" step="0.1" value="38.8" oninput="handleSliderChange(this.value)">
+        </div>
+        <div id="priceInfo" class="status-bar" style="margin-bottom:0;">
+            <span>價格: <strong>$38.80</strong> | 預估損益: <strong style="color:var(--success)">$162.50</strong></span>
+        </div>
+    </div>
+
+    <!-- Stats & Scenario Table (Bottom) -->
+    <div class="stats-grid">
+        <div class="stat-card"><small>最大利潤</small><div id="resProfit" style="color:var(--success)">$0</div></div>
+        <div class="stat-card"><small>最大風險</small><div id="resLoss" style="color:var(--danger)">$0</div></div>
+        <div class="stat-card"><small>損益平衡點</small><div id="resBreakeven" style="color:var(--primary)">$0</div></div>
+        <div class="stat-card"><small>資金報酬率</small><div id="resROI" style="color:var(--primary)">0%</div></div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>結算區間</th>
+                    <th>情境描述</th>
+                    <th>狀態</th>
+                </tr>
+            </thead>
+            <tbody id="outcomeMatrix"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+    let currentParams = {};
+
+    function toggleInputs() {
+        const container = document.getElementById('inputContainer');
+        const btn = document.getElementById('toggleBtn');
+        const isCollapsed = container.classList.toggle('collapsed');
+        btn.innerHTML = isCollapsed ? '修改參數 ⬇️' : '收起參數 ⬆️';
+    }
+
+    function autoCollapse() {
+        const container = document.getElementById('inputContainer');
+        if (!container.classList.contains('collapsed')) {
+            toggleInputs();
+        }
+    }
+
+    function calculatePnL(price, highS, lowS, netCredit, mult) {
+        let pnlPerShare = 0;
+        if (price >= highS) pnlPerShare = netCredit;
+        else if (price <= lowS) pnlPerShare = netCredit - (highS - lowS);
+        else pnlPerShare = netCredit - (highS - price);
+        return pnlPerShare * mult;
+    }
+
+    function handleSliderChange(val) {
+        const pnl = calculatePnL(parseFloat(val), currentParams.highS, currentParams.lowS, currentParams.netCredit, currentParams.mult);
+        updateStatusDisplay(val, pnl);
+        updateChartCrosshair(parseFloat(val));
+        updateMatrixHighlight(parseFloat(val));
+    }
+
+    function updateStatusDisplay(price, pnl) {
+        const color = pnl >= 0 ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('priceInfo').innerHTML = `價格: <strong>$${parseFloat(price).toFixed(2)}</strong> | 預估損益: <strong style="color:${color}">$${pnl.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong>`;
+    }
+
+    function updateDashboard() {
+        const highS = parseFloat(document.getElementById('highStrike').value);
+        const lowS = parseFloat(document.getElementById('lowStrike').value);
+        const shortP = parseFloat(document.getElementById('shortPremium').value);
+        const longP = parseFloat(document.getElementById('longPremium').value);
+        const mult = parseFloat(document.getElementById('multiplier').value);
+        const initialPrice = parseFloat(document.getElementById('manualPrice').value);
+
+        const netCredit = shortP - longP;
+        currentParams = { highS, lowS, netCredit, mult };
+
+        const maxProfit = netCredit * mult;
+        const maxLoss = ((highS - lowS) - netCredit) * mult;
+        const breakeven = highS - netCredit;
+        
+        document.getElementById('resProfit').innerText = `$${maxProfit.toLocaleString()}`;
+        document.getElementById('resLoss').innerText = `-$${maxLoss.toLocaleString()}`;
+        document.getElementById('resBreakeven').innerText = `$${breakeven.toFixed(3)}`;
+        document.getElementById('resROI').innerText = `${(maxProfit/maxLoss*100).toFixed(1)}%`;
+
+        const slider = document.getElementById('priceSlider');
+        slider.min = lowS - 10;
+        slider.max = highS + 10;
+        slider.value = initialPrice;
+
+        renderStaticTable(highS, lowS, netCredit, mult, breakeven);
+        initChart(highS, lowS, netCredit, mult);
+        handleSliderChange(initialPrice);
+    }
+
+    function renderStaticTable(highS, lowS, netCredit, mult, breakeven) {
+        const matrix = [
+            { id: 'profit', range: `> $${highS}`, desc: "完全獲利區" },
+            { id: 'partialProfit', range: `$${breakeven.toFixed(2)} - $${highS}`, desc: "獲利區" },
+            { id: 'partialLoss', range: `$${lowS} - $${breakeven.toFixed(2)}`, desc: "虧損區" },
+            { id: 'maxLoss', range: `< $${lowS}`, desc: "最大風險區" }
+        ];
+
+        let html = "";
+        matrix.forEach(m => {
+            const isProfit = m.id.toLowerCase().includes('profit');
+            html += `<tr id="row-${m.id}">
+                <td><strong>${m.range}</strong></td>
+                <td>${m.desc}</td>
+                <td><span class="badge ${isProfit ? 'badge-profit' : 'badge-loss'}">${isProfit ? 'PROFIT' : 'LOSS'}</span></td>
+            </tr>`;
+        });
+        document.getElementById('outcomeMatrix').innerHTML = html;
+    }
+
+    function updateMatrixHighlight(price) {
+        const { highS, lowS, netCredit } = currentParams;
+        const breakeven = highS - netCredit;
+        
+        document.querySelectorAll('#outcomeMatrix tr').forEach(r => r.classList.remove('active-scenario'));
+        
+        if (price >= highS) document.getElementById('row-profit').classList.add('active-scenario');
+        else if (price >= breakeven) document.getElementById('row-partialProfit').classList.add('active-scenario');
+        else if (price >= lowS) document.getElementById('row-partialLoss').classList.add('active-scenario');
+        else document.getElementById('row-maxLoss').classList.add('active-scenario');
+    }
+
+    function initChart(highS, lowS, netCredit, mult) {
+        const ctx = document.getElementById('pnlChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        const labels = [];
+        const pnlData = [];
+        const minX = lowS - 10;
+        const maxX = highS + 10;
+        for (let i = 0; i <= 100; i++) {
+            const p = minX + (i * (maxX - minX) / 100);
+            labels.push(p);
+            pnlData.push(calculatePnL(p, highS, lowS, netCredit, mult));
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: pnlData,
+                    fill: { target: 'origin', above: 'rgba(22, 163, 74, 0.1)', below: 'rgba(220, 38, 38, 0.1)' },
+                    borderColor: '#2563eb',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0,
+                    segment: { borderColor: c => c.p0.parsed.y < 0 ? '#dc2626' : '#16a34a' }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                scales: {
+                    x: { type: 'linear', grid: { display: false } },
+                    y: { grid: { color: '#f1f5f9' } }
+                }
+            },
+            plugins: [{
+                id: 'verticalLine',
+                afterDraw: (chart) => {
+                    if (chart.activePrice) {
+                        const { ctx, chartArea, scales } = chart;
+                        const x = scales.x.getPixelForValue(chart.activePrice);
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = 'rgba(37, 99, 235, 0.5)';
+                        ctx.moveTo(x, chartArea.top);
+                        ctx.lineTo(x, chartArea.bottom);
+                        ctx.stroke();
+                        
+                        const y = scales.y.getPixelForValue(calculatePnL(chart.activePrice, currentParams.highS, currentParams.lowS, currentParams.netCredit, currentParams.mult));
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, Math.PI * 2);
+                        ctx.fillStyle = '#2563eb';
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }
+            }]
+        });
+    }
+
+    function updateChartCrosshair(price) {
+        if (chartInstance) {
+            chartInstance.activePrice = price;
+            chartInstance.draw();
+        }
+    }
+
+    window.onload = updateDashboard;
+</script>
+</body>
+</html>
